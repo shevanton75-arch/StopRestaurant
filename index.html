@@ -1,0 +1,2192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StopRestaurant — Control de Inventario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--surface:#ffffff;--surface2:#eeede9;--surface3:#e5e4df;
+  --border:#dddbd5;--border2:#c8c6bf;
+  --text:#18170f;--text2:#6a6960;--text3:#9b9a93;
+  --accent:#1f6e3c;--accent-bg:#e9f4ee;--accent2:#c4e8d1;--accent3:#a3dab8;
+  --danger:#b83232;--danger-bg:#fcedec;--danger2:#f2bfbe;
+  --warn:#a07010;--warn-bg:#fdf6e3;--warn2:#f5d87a;
+  --info:#1a4f8a;--info-bg:#e8f0fb;--info2:#b8d0f5;
+  --radius:10px;--radius-sm:6px;--radius-lg:14px;
+  --font:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 2px 12px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.10);
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;line-height:1.5}
+.hidden{display:none!important}
+
+/* ─── LOADER ─── */
+#appLoader{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loader-logo{display:flex;align-items:center;gap:10px}
+.loader-icon{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.loader-icon svg{width:22px;height:22px;fill:white}
+.loader-name{font-size:20px;font-weight:600}
+.loader-bar{width:200px;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.loader-bar-inner{height:100%;width:30%;background:var(--accent);border-radius:2px;animation:loadSlide 1.2s ease-in-out infinite}
+@keyframes loadSlide{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}
+.loader-text{font-size:12px;color:var(--text3)}
+
+/* ─── LOGIN ─── */
+.login-wrap{
+  min-height:100vh;display:flex;align-items:stretch;background:var(--bg)
+}
+.login-left{
+  width:400px;flex-shrink:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:40px 48px;background:var(--surface);
+  border-right:1px solid var(--border);
+  box-shadow:2px 0 20px rgba(0,0,0,.06)
+}
+.login-right{
+  flex:1;background:#1a1917;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;overflow:hidden;
+  position:relative;padding:32px
+}
+.login-right-bg{
+  position:absolute;inset:0;
+  background:repeating-linear-gradient(
+    0deg,transparent,transparent 39px,rgba(255,255,255,.03) 39px,rgba(255,255,255,.03) 40px
+  ),repeating-linear-gradient(
+    90deg,transparent,transparent 39px,rgba(255,255,255,.03) 39px,rgba(255,255,255,.03) 40px
+  )
+}
+.login-right-card{
+  position:relative;z-index:1;background:var(--surface);
+  border-radius:var(--radius-lg);width:100%;max-width:520px;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden;
+  border:1px solid var(--border)
+}
+.login-right-card-header{
+  background:#1f6e3c;padding:12px 18px;
+  display:flex;align-items:center;gap:8px
+}
+.login-right-card-dot{width:10px;height:10px;border-radius:50%}
+.login-right-card-body{padding:16px}
+.login-right-label{
+  font-size:11px;font-weight:600;color:rgba(255,255,255,.5);
+  letter-spacing:.1em;text-transform:uppercase;
+  text-align:center;margin-top:20px;position:relative;z-index:1
+}
+.login-card{width:100%}
+.login-brand{display:flex;align-items:center;gap:11px;margin-bottom:8px}
+.login-brand-icon{width:38px;height:38px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center}
+.login-brand-icon svg{width:20px;height:20px;fill:white}
+.login-brand-name{font-size:18px;font-weight:600}
+.login-tagline{font-size:12px;color:var(--text2);margin-bottom:32px}
+@media(max-width:800px){
+  .login-right{display:none}
+  .login-left{width:100%;border-right:none;box-shadow:none}
+}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+.form-input{width:100%;padding:10px 13px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;background:var(--surface);color:var(--text);outline:none;transition:.15s}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(31,110,60,.1)}
+.form-input::placeholder{color:var(--text3)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:var(--radius-sm);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:.15s;white-space:nowrap;letter-spacing:.02em}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:white}
+.btn-primary:hover:not(:disabled){background:#195c32}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border2)}
+.btn-secondary:hover:not(:disabled){background:var(--surface2)}
+.btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger2)}
+.btn-danger:hover:not(:disabled){background:var(--danger2)}
+.btn-ghost{background:none;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface2)}
+.btn-full{width:100%;justify-content:center}
+.btn-sm{padding:7px 13px;font-size:11px}
+.alert{padding:11px 14px;border-radius:var(--radius-sm);font-size:12px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.alert-error{background:var(--danger-bg);border:1px solid var(--danger2);color:var(--danger)}
+.alert-success{background:var(--accent-bg);border:1px solid var(--accent2);color:var(--accent)}
+.alert-warn{background:var(--warn-bg);border:1px solid var(--warn2);color:var(--warn)}
+.alert-info{background:var(--info-bg);border:1px solid var(--info2);color:var(--info)}
+
+/* ─── APP SHELL ─── */
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:228px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:width .2s}
+.sidebar-header{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.s-brand{display:flex;align-items:center;gap:10px}
+.s-brand-icon{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.s-brand-icon svg{width:16px;height:16px;fill:white}
+.s-brand-name{font-size:14px;font-weight:600;white-space:nowrap}
+.sidebar-nav{padding:12px 10px;flex:1}
+.nav-section{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:8px 10px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);transition:.12s;margin-bottom:1px;white-space:nowrap}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.8}
+.nav-item.active svg{opacity:1}
+.nav-badge{margin-left:auto;background:var(--danger);color:white;font-size:10px;font-weight:600;padding:1px 6px;border-radius:100px}
+.sidebar-footer{padding:12px 10px;border-top:1px solid var(--border)}
+.user-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-sm)}
+.u-avatar{width:30px;height:30px;border-radius:50%;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0}
+.u-info{flex:1;min-width:0}
+.u-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.u-role{font-size:10px;color:var(--text3)}
+.logout-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;border-radius:4px;display:flex;align-items:center}
+.logout-btn:hover{color:var(--danger)}
+
+/* ─── MAIN ─── */
+.main-content{flex:1;overflow:auto;min-width:0}
+.page{padding:28px 32px;display:none}
+.page.active{display:block}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.page-title{font-size:18px;font-weight:600}
+.page-sub{font-size:12px;color:var(--text2);margin-top:3px}
+.page-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ─── BADGES ─── */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.03em}
+.badge-admin{background:var(--info-bg);color:var(--info)}
+.badge-staff{background:var(--surface2);color:var(--text2)}
+.badge-chef{background:#f3eafd;color:#6b35b8}
+.badge-ok{background:var(--accent-bg);color:var(--accent)}
+.badge-warn{background:var(--warn-bg);color:var(--warn)}
+.badge-danger{background:var(--danger-bg);color:var(--danger)}
+
+/* ─── MODAL ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)}
+.modal-box{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-title{font-size:14px;font-weight:600}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text2);font-size:22px;line-height:1;padding:2px;border-radius:4px}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface)}
+
+/* ─── INVENTORY TABLE ─── */
+.category-block{margin-bottom:28px;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.cat-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+.cat-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text);display:flex;align-items:center;gap:8px}
+.cat-bar{width:3px;height:15px;background:var(--accent);border-radius:2px}
+.cat-count{font-size:10px;font-weight:500;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:100px}
+.cat-actions{display:flex;gap:6px}
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{background:var(--surface2)}
+th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;border-bottom:1px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text)}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even):not(.row-danger) td{background:#fafaf7}
+tr.row-danger td{background:var(--danger-bg)!important;border-bottom-color:var(--danger2)}
+td.cell-warn{background:var(--warn-bg)!important;color:var(--warn);font-weight:600}
+.prod-name{font-weight:600;color:var(--text)}
+.qty-val{font-family:var(--mono);font-size:12px}
+.editable-cell{background:var(--surface);border:1px solid var(--border2);border-radius:5px;padding:6px 9px;font-family:var(--font);font-size:12px;width:100%;outline:none;min-width:80px;color:var(--text)}
+.editable-cell:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(31,110,60,.12)}
+.btn-icon{background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;border-radius:5px;display:inline-flex;align-items:center;transition:.12s}
+.btn-icon:hover{background:var(--surface2);color:var(--text)}
+.btn-icon.del:hover{background:var(--danger-bg);color:var(--danger)}
+
+/* ─── EMPTY / LOADING ─── */
+.empty-state{text-align:center;padding:56px 24px;color:var(--text2)}
+.empty-icon{font-size:40px;margin-bottom:14px;opacity:.6}
+.empty-title{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text)}
+.empty-sub{font-size:12px}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-row{text-align:center;padding:32px;color:var(--text3);display:flex;align-items:center;justify-content:center;gap:10px}
+
+/* ─── STATS CARDS ─── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.stat-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.stat-val{font-size:24px;font-weight:600;font-family:var(--mono)}
+.stat-val.danger{color:var(--danger)}
+.stat-val.warn{color:var(--warn)}
+.stat-val.ok{color:var(--accent)}
+
+/* ─── USERS ─── */
+.users-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.user-list-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);transition:.1s}
+.user-list-row:last-child{border-bottom:none}
+.user-list-row:hover{background:var(--surface2)}
+.ul-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.ul-avatar.admin{background:var(--info-bg);color:var(--info)}
+.ul-avatar.chef{background:#f3eafd;color:#6b35b8}
+.ul-avatar.staff{background:var(--accent-bg);color:var(--accent)}
+
+/* ─── HISTORY ─── */
+.history-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.history-row{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border)}
+.history-row:last-child{border-bottom:none}
+.history-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.history-dot.update{background:var(--accent)}
+.history-dot.create{background:var(--info)}
+.history-dot.delete{background:var(--danger)}
+.history-info{flex:1}
+.history-action{font-size:12px;font-weight:500}
+.history-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.history-time{font-size:11px;color:var(--text3);font-family:var(--mono);white-space:nowrap}
+
+/* ─── FILL PAGE ─── */
+.filters-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+select.f-select{padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--font);font-size:12px;background:var(--surface);color:var(--text);outline:none;cursor:pointer}
+select.f-select:focus{border-color:var(--accent)}
+.search-box{padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--font);font-size:12px;background:var(--surface);color:var(--text);outline:none;min-width:180px}
+.search-box:focus{border-color:var(--accent)}
+
+/* ─── WEBHOOK PAGE ─── */
+.webhook-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:20px}
+.webhook-title{font-size:13px;font-weight:600;margin-bottom:8px}
+.webhook-sub{font-size:12px;color:var(--text2);margin-bottom:16px}
+.code-block{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;font-family:var(--mono);font-size:11px;color:var(--text);overflow-x:auto;white-space:pre;line-height:1.6}
+.webhook-url{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.webhook-url input{flex:1;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--mono);font-size:12px;background:var(--surface);color:var(--text);outline:none}
+.webhook-url input:focus{border-color:var(--accent)}
+
+/* ─── ALERT PANELS ─── */
+.alert-panels{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.alert-panel{border-radius:var(--radius);overflow:hidden;border:1px solid}
+.alert-panel-danger{border-color:var(--danger2);background:var(--danger-bg)}
+.alert-panel-warn{border-color:var(--warn2);background:var(--warn-bg)}
+.alert-panel-header{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;user-select:none}
+.alert-panel-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.alert-panel-danger .alert-panel-icon{background:var(--danger2)}
+.alert-panel-warn .alert-panel-icon{background:var(--warn2)}
+.alert-panel-icon svg{width:14px;height:14px}
+.alert-panel-danger .alert-panel-icon svg{fill:var(--danger)}
+.alert-panel-warn .alert-panel-icon svg{fill:var(--warn)}
+.alert-panel-title{font-size:12px;font-weight:700;flex:1}
+.alert-panel-danger .alert-panel-title{color:var(--danger)}
+.alert-panel-warn .alert-panel-title{color:var(--warn)}
+.alert-panel-count{font-size:11px;font-weight:600;padding:2px 9px;border-radius:100px}
+.alert-panel-danger .alert-panel-count{background:var(--danger2);color:var(--danger)}
+.alert-panel-warn .alert-panel-count{background:var(--warn2);color:var(--warn)}
+.alert-panel-chevron{font-size:10px;color:var(--text3);transition:.2s;margin-left:4px}
+.alert-panel-body{border-top:1px solid;max-height:0;overflow:hidden;transition:max-height .25s ease}
+.alert-panel-danger .alert-panel-body{border-color:var(--danger2)}
+.alert-panel-warn .alert-panel-body{border-color:var(--warn2)}
+.alert-panel-body.open{max-height:400px}
+.alert-panel-table{width:100%;border-collapse:collapse;font-size:12px}
+.alert-panel-table th{padding:7px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.alert-panel-danger .alert-panel-table th{color:var(--danger);background:var(--danger2);opacity:.7}
+.alert-panel-warn .alert-panel-table th{color:var(--warn);background:var(--warn2);opacity:.7}
+.alert-panel-table td{padding:8px 14px;border-top:1px solid}
+.alert-panel-danger .alert-panel-table td{border-color:var(--danger2);color:var(--text)}
+.alert-panel-warn .alert-panel-table td{border-color:var(--warn2);color:var(--text)}
+.alert-chip{display:inline-flex;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700}
+.chip-red{background:var(--danger2);color:var(--danger)}
+.chip-orange{background:#fde8c0;color:#a06010}
+.chip-yellow{background:var(--warn2);color:var(--warn)}
+@media(max-width:900px){
+  .sidebar{width:60px}
+  .nav-item span,.u-info,.s-brand-name,.nav-section{display:none}
+  .sidebar-header{padding:14px 10px}
+  .s-brand{justify-content:center}
+  .logo-compact-name{display:none}
+  .logo-compact-icon{margin:0 auto}
+  .nav-item{justify-content:center;padding:10px 0}
+  .nav-item svg{margin:0}
+  .user-row{justify-content:center;padding:8px 0}
+  .logout-btn{margin:0 auto}
+  .page{padding:20px 18px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:640px){
+  html,body{height:100%;overflow:hidden}
+  body{padding-bottom:0}
+  .app-shell{flex-direction:column;height:100vh;overflow:hidden}
+  .sidebar{display:none}
+  .main-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .page{padding:12px 10px 80px}
+  .page-header{flex-direction:column;gap:8px;margin-bottom:14px}
+  .page-title{font-size:15px}
+  .page-actions{width:100%;justify-content:flex-end;flex-wrap:wrap}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+  .stat-card{padding:10px 12px}
+  .stat-val{font-size:18px}
+  .stat-label{font-size:9px}
+  .filters-row{gap:6px}
+  .search-box{min-width:0;flex:1}
+  .f-select{flex:1}
+  .modal-overlay{align-items:flex-end;padding:0}
+  .modal-box{border-radius:var(--radius-lg) var(--radius-lg) 0 0;max-height:88vh;width:100%;max-width:100%}
+  .cat-header{flex-direction:column;align-items:flex-start;gap:6px}
+  .cat-actions{width:100%}
+  .login-card{padding:24px 16px}
+  .logo-pill{border-radius:var(--radius-lg);padding:10px 16px}
+  th,td{padding:6px 8px;font-size:11px}
+  .editable-cell{min-width:60px;font-size:11px;padding:4px 6px}
+  .alert-panel-title{font-size:11px}
+  .webhook-card{padding:14px}
+  .btn{padding:8px 14px;font-size:11px}
+  .btn-sm{padding:6px 10px;font-size:10px}
+  .page-actions .btn span{display:none}
+}
+@media(min-width:1400px){
+  .sidebar{width:252px}
+  .page{padding:32px 40px}
+  .stats-grid{grid-template-columns:repeat(4,1fr)}
+}
+
+/* ─── LOGO ─── */
+.logo-svg{display:block}
+.logo-pill{display:inline-flex;align-items:center;gap:0;background:#1a1917;border-radius:28px;padding:7px 18px 7px 7px;border:1px solid rgba(255,255,255,.12)}
+.logo-pill-icon{width:36px;height:36px;background:rgba(255,255,255,.1);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0}
+.logo-pill-name{font-family:'Playfair Display',Georgia,serif;font-size:16px;font-weight:600;color:white;letter-spacing:.01em}
+.logo-pill-name span{color:#a3dab8}
+.logo-pill-sub{font-size:9px;font-weight:600;letter-spacing:.14em;color:rgba(255,255,255,.4);text-transform:uppercase;display:block;margin-top:1px}
+.logo-compact{display:inline-flex;align-items:center;gap:9px}
+.logo-compact-icon{width:28px;height:28px;background:#1a1917;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(255,255,255,.1)}
+.logo-compact-name{font-family:'Playfair Display',Georgia,serif;font-size:14px;font-weight:600;color:var(--text)}
+.logo-compact-name span{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="appLoader">
+  <div class="logo-pill">
+    <div class="logo-pill-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <line x1="9" y1="4" x2="9" y2="12" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="6.5" y1="4" x2="6.5" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="9" y1="4" x2="9" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="11.5" y1="4" x2="11.5" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M6.5 8 Q9 11 11.5 8" fill="none" stroke="white" stroke-width="1.5"/>
+        <line x1="16" y1="4" x2="16" y2="20" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M16 4 Q21 7.5 16 12" fill="none" stroke="white" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <div>
+      <span class="logo-pill-name">Stop<span>Restaurant</span></span>
+      <span class="logo-pill-sub">Control de Inventario</span>
+    </div>
+  </div>
+  <div class="loader-bar" style="margin-top:8px"><div class="loader-bar-inner"></div></div>
+  <span class="loader-text" id="loaderText">Conectando con Firebase…</span>
+</div>
+
+<!-- LOGIN -->
+<div class="login-wrap hidden" id="loginScreen">
+
+  <!-- LEFT: formulario -->
+  <div class="login-left">
+    <div class="login-card">
+      <div style="margin-bottom:28px">
+        <div class="logo-pill">
+          <div class="logo-pill-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <line x1="9" y1="4" x2="9" y2="12" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <line x1="6.5" y1="4" x2="6.5" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="9" y1="4" x2="9" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="11.5" y1="4" x2="11.5" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M6.5 8 Q9 11 11.5 8" fill="none" stroke="white" stroke-width="1.5"/>
+              <line x1="16" y1="4" x2="16" y2="20" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M16 4 Q21 7.5 16 12" fill="none" stroke="white" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div>
+            <span class="logo-pill-name">Stop<span>Restaurant</span></span>
+            <span class="logo-pill-sub">Control de Inventario</span>
+          </div>
+        </div>
+      </div>
+      <div id="loginAlert" class="alert alert-error hidden"></div>
+
+      <!-- TABS -->
+      <div style="display:flex;gap:0;margin-bottom:24px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px">
+        <button id="tabLoginBtn" onclick="switchTab('login')" style="flex:1;padding:8px;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08);transition:.15s">Ingresar</button>
+        <button id="tabRegisterBtn" onclick="switchTab('register')" style="flex:1;padding:8px;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:.15s">Crear cuenta</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="loginForm">
+        <div class="form-group">
+          <label class="form-label">Correo electrónico</label>
+          <input class="form-input" type="email" id="loginEmail" placeholder="usuario@ejemplo.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <input class="form-input" type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">
+          <span id="loginBtnText">Ingresar</span>
+        </button>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="registerForm" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Nombre completo</label>
+          <input class="form-input" type="text" id="regName" placeholder="Tu nombre">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo electrónico</label>
+          <input class="form-input" type="email" id="regEmail" placeholder="usuario@ejemplo.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <input class="form-input" type="password" id="regPass" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre del restaurante</label>
+          <input class="form-input" type="text" id="regRestaurant" placeholder="Ej: La Cucharita">
+        </div>
+        <button class="btn btn-primary btn-full" id="regBtn" onclick="doRegister()">
+          <span id="regBtnText">Crear cuenta gratis</span>
+        </button>
+        <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:12px">Al registrarte aceptas los términos de uso</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: preview de la app -->
+  <div class="login-right">
+    <div class="login-right-bg"></div>
+    <div class="login-right-card">
+      <!-- Fake app header -->
+      <div class="login-right-card-header">
+        <div class="login-right-card-dot" style="background:#ef4444"></div>
+        <div class="login-right-card-dot" style="background:#f59e0b"></div>
+        <div class="login-right-card-dot" style="background:#22c55e"></div>
+        <span style="font-size:11px;color:rgba(255,255,255,.6);margin-left:8px;font-family:var(--mono)">StopRestaurant — Inventario</span>
+      </div>
+      <div class="login-right-card-body">
+        <!-- Fake stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+          <div style="background:var(--surface2);border-radius:8px;padding:10px">
+            <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Categorías</div>
+            <div style="font-size:20px;font-weight:600;font-family:var(--mono);color:var(--accent)">4</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:10px">
+            <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Productos</div>
+            <div style="font-size:20px;font-weight:600;font-family:var(--mono);color:var(--accent)">18</div>
+          </div>
+          <div style="background:#fdf6e3;border-radius:8px;padding:10px">
+            <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Bajo stock</div>
+            <div style="font-size:20px;font-weight:600;font-family:var(--mono);color:var(--warn)">3</div>
+          </div>
+          <div style="background:#fcedec;border-radius:8px;padding:10px">
+            <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Por vencer</div>
+            <div style="font-size:20px;font-weight:600;font-family:var(--mono);color:var(--danger)">2</div>
+          </div>
+        </div>
+        <!-- Fake alert panel -->
+        <div style="background:#fcedec;border:1px solid #f2bfbe;border-radius:8px;padding:9px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          <div style="width:22px;height:22px;background:#f2bfbe;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#b83232"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:#b83232;flex:1">Productos próximos a vencer</span>
+          <span style="font-size:10px;font-weight:600;background:#f2bfbe;color:#b83232;padding:2px 8px;border-radius:100px">2 productos</span>
+        </div>
+        <!-- Fake table -->
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="background:var(--surface2);display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.5fr;padding:7px 10px;gap:8px">
+            <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Producto</span>
+            <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Unidad</span>
+            <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Mín.</span>
+            <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Actual</span>
+            <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Vencimiento</span>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.5fr;padding:7px 10px;gap:8px;border-top:1px solid var(--border);background:#fcedec">
+            <span style="font-size:11px;font-weight:600">Pollo entero</span>
+            <span style="font-size:11px;color:var(--text2)">kg</span>
+            <span style="font-size:11px;font-family:var(--mono)">5</span>
+            <span style="font-size:11px;font-family:var(--mono);color:#b83232;font-weight:600">3</span>
+            <span style="font-size:11px;color:#b83232;font-weight:600">2025-03-20</span>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.5fr;padding:7px 10px;gap:8px;border-top:1px solid var(--border)">
+            <span style="font-size:11px;font-weight:600">Carne de res</span>
+            <span style="font-size:11px;color:var(--text2)">kg</span>
+            <span style="font-size:11px;font-family:var(--mono)">4</span>
+            <span style="font-size:11px;font-family:var(--mono)">6</span>
+            <span style="font-size:11px">2025-04-01</span>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.5fr;padding:7px 10px;gap:8px;border-top:1px solid var(--border);background:#fcedec">
+            <span style="font-size:11px;font-weight:600">Mozzarella</span>
+            <span style="font-size:11px;color:var(--text2)">kg</span>
+            <span style="font-size:11px;font-family:var(--mono)">2</span>
+            <span style="font-size:11px;font-family:var(--mono);color:#a07010;font-weight:600">1.5</span>
+            <span style="font-size:11px;color:#b83232;font-weight:600">2025-03-21</span>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.5fr;padding:7px 10px;gap:8px;border-top:1px solid var(--border)">
+            <span style="font-size:11px;font-weight:600">Leche entera</span>
+            <span style="font-size:11px;color:var(--text2)">L</span>
+            <span style="font-size:11px;font-family:var(--mono)">10</span>
+            <span style="font-size:11px;font-family:var(--mono)">12</span>
+            <span style="font-size:11px">2025-03-28</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="login-right-label">Vista previa del sistema</div>
+  </div>
+
+</div>
+
+<!-- APP SHELL -->
+<div class="app-shell hidden" id="appShell">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="s-brand">
+        <div class="logo-compact">
+          <div class="logo-compact-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <line x1="9" y1="4" x2="9" y2="12" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <line x1="6.5" y1="4" x2="6.5" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="9" y1="4" x2="9" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="11.5" y1="4" x2="11.5" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M6.5 8 Q9 11 11.5 8" fill="none" stroke="white" stroke-width="1.5"/>
+              <line x1="16" y1="4" x2="16" y2="20" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M16 4 Q21 7.5 16 12" fill="none" stroke="white" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <span class="logo-compact-name s-brand-name">Stop<span>Restaurant</span></span>
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" id="nav-inventory" onclick="showPage('inventory')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h18v2H3zm0 4h18v2H3zm0 4h18v2H3zm0 4h18v2H3zm0 4h18v2H3z"/></svg>
+        <span>Inventario</span>
+      </div>
+      <div class="nav-item" id="nav-fill" onclick="showPage('fill')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        <span>Llenado</span>
+        <span class="nav-badge hidden" id="alertBadge">0</span>
+      </div>
+      <div class="nav-item admin-only hidden" id="nav-columns" onclick="showPage('columns')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h4v18H3zm7 0h4v18h-4zm7 0h4v18h-4z"/></svg>
+        <span>Columnas</span>
+      </div>
+      <div class="nav-section admin-only hidden">Administración</div>
+      <div class="nav-item admin-only hidden" id="nav-users" onclick="showPage('users')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <span>Usuarios</span>
+      </div>
+      <div class="nav-item admin-only hidden" id="nav-history" onclick="showPage('history')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+        <span>Historial</span>
+      </div>
+      <div class="nav-item admin-only hidden" id="nav-webhook" onclick="showPage('webhook')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 13.41c.41.39.41 1.03 0 1.42-.39.39-1.03.39-1.42 0a5.003 5.003 0 010-7.07l3.54-3.54a5.003 5.003 0 017.07 0 5.003 5.003 0 010 7.07l-1.49 1.49c.01-.36-.04-.72-.11-1.05l.78-.79c.98-.98.98-2.56 0-3.54a2.5 2.5 0 00-3.54 0l-3.54 3.54c-.98.98-.98 2.56 0 3.54zm-2.83 2.83a2.5 2.5 0 003.54 0l1.62-1.62c.01.36.04.72.11 1.05l-.78.79a5.003 5.003 0 01-7.07 0 5.003 5.003 0 010-7.07l1.49-1.49c-.01.36.04.72.11 1.05l-.78.79c-.98.98-.98 2.56 0 3.54z"/></svg>
+        <span>Webhook</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="u-avatar" id="sidebarAvatar">A</div>
+        <div class="u-info">
+          <div class="u-name" id="sidebarName">Cargando…</div>
+          <div class="u-role" id="sidebarRole">—</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()" title="Cerrar sesión">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- INVENTARIO -->
+    <div class="page active" id="page-inventory">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Gestión de Inventario</div>
+          <div class="page-sub">Categorías, productos y alertas de stock</div>
+        </div>
+        <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="openExportModal()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            Exportar
+          </button>
+          <button class="btn btn-secondary btn-sm admin-only hidden" onclick="openAddCategory()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Nueva categoría
+          </button>
+        </div>
+      </div>
+      <div class="stats-grid" id="statsGrid"></div>
+      <div id="alertPanels" class="alert-panels"></div>
+      <div id="inventoryContent"><div class="loading-row"><div class="spinner"></div> Cargando inventario…</div></div>
+    </div>
+
+    <!-- LLENADO -->
+    <div class="page" id="page-fill">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Llenado de Inventario</div>
+          <div class="page-sub">Registra entradas, salidas y fechas de vencimiento</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="discardFill()">Descartar</button>
+          <button class="btn btn-primary btn-sm" onclick="saveFill()" id="saveFillBtn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+            Guardar cambios
+          </button>
+        </div>
+      </div>
+      <div class="filters-row">
+        <select class="f-select" id="fillCatFilter" onchange="renderFill()">
+          <option value="">Todas las categorías</option>
+        </select>
+        <input class="search-box" type="text" id="fillSearch" placeholder="Buscar producto…" oninput="renderFill()">
+      </div>
+      <div id="fillSummary" class="alert alert-success hidden"></div>
+      <div id="fillContent"><div class="loading-row"><div class="spinner"></div> Cargando…</div></div>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="page" id="page-users">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Usuarios</div>
+          <div class="page-sub">Administra accesos al sistema</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary btn-sm" onclick="openAddUser()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Nuevo usuario
+          </button>
+        </div>
+      </div>
+      <div id="usersContent"><div class="loading-row"><div class="spinner"></div> Cargando…</div></div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div class="page" id="page-history">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Historial de Cambios</div>
+          <div class="page-sub">Registro de todas las acciones</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="loadHistory()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            Actualizar
+          </button>
+        </div>
+      </div>
+      <div id="historyContent"><div class="loading-row"><div class="spinner"></div> Cargando…</div></div>
+    </div>
+
+    <!-- COLUMNAS EXTRAS -->
+    <div class="page" id="page-columns">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Columnas Extras</div>
+          <div class="page-sub">Agrega campos personalizados a todas las categorías</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary btn-sm" onclick="openAddColumn()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Nueva columna
+          </button>
+        </div>
+      </div>
+      <div id="columnsContent"><div class="loading-row"><div class="spinner"></div> Cargando…</div></div>
+    </div>
+
+    <!-- WEBHOOK -->
+    <div class="page" id="page-webhook">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Webhook de Registro</div>
+          <div class="page-sub">Registra usuarios automáticamente desde sistemas externos</div>
+        </div>
+      </div>
+
+      <div class="webhook-card">
+        <div class="webhook-title">Endpoint para recibir nuevos usuarios</div>
+        <div class="webhook-sub">Configura tu sistema externo para enviar un POST a esta URL con los datos del usuario. El sistema creará la cuenta automáticamente en Firebase Auth y Firestore.</div>
+        <div class="webhook-url">
+          <input type="text" id="webhookUrlInput" readonly value="https://stoprestaurant-15e24.firebaseapp.com/registerUser">
+          <button class="btn btn-secondary btn-sm" onclick="copyWebhookUrl()">Copiar</button>
+        </div>
+        <div class="alert alert-info" style="margin-bottom:16px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          Esta función requiere Firebase Cloud Functions (plan Blaze). Mientras tanto, puedes usar el registro manual desde la pantalla de Usuarios.
+        </div>
+      </div>
+
+      <div class="webhook-card">
+        <div class="webhook-title">Formato del payload JSON esperado</div>
+        <div class="webhook-sub">El sistema externo debe enviar un POST con el siguiente cuerpo:</div>
+        <div class="code-block">{
+  "email": "nuevo@restaurante.com",
+  "password": "contraseña_segura",
+  "name": "Nombre Completo",
+  "role": "staff",           // "admin" o "staff"
+  "secret": "TU_SECRET_KEY"  // clave de seguridad configurada
+}</div>
+      </div>
+
+      <div class="webhook-card">
+        <div class="webhook-title">Registro manual de usuario (disponible ahora)</div>
+        <div class="webhook-sub">Mientras configuras el webhook, puedes registrar usuarios directamente:</div>
+        <div id="webhookRegForm">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Nombre</label>
+              <input class="form-input" id="wName" placeholder="Nombre completo">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Correo</label>
+              <input class="form-input" type="email" id="wEmail" placeholder="correo@ejemplo.com">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Contraseña</label>
+              <input class="form-input" type="password" id="wPass" placeholder="Contraseña">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Rol</label>
+              <select class="form-input" id="wRole">
+                <option value="staff">Personal (Staff)</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </div>
+          </div>
+          <div id="webhookAlert" class="hidden"></div>
+          <button class="btn btn-primary btn-sm" onclick="registerUserWebhook()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Registrar usuario
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV (móvil) -->
+  <nav id="bottomNav" style="display:none">
+    <style>
+      @media(max-width:640px){
+        #bottomNav{display:flex!important;position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--surface);border-top:1px solid var(--border);z-index:200;align-items:stretch;box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+        .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--text3);font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border:none;background:none;padding:0;position:relative;transition:.12s}
+        .bnav-item.active{color:var(--accent)}
+        .bnav-item svg{width:19px;height:19px}
+        .bnav-badge{position:absolute;top:7px;right:calc(50% - 18px);background:var(--danger);color:white;font-size:8px;font-weight:700;padding:1px 4px;border-radius:100px;display:none}
+        .bnav-badge.show{display:block}
+      }
+    </style>
+    <button class="bnav-item active" id="bnav-inventory" onclick="showPage('inventory')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h18v2H3zm0 4h18v2H3zm0 4h18v2H3zm0 4h18v2H3zm0 4h18v2H3z"/></svg>
+      Inventario
+    </button>
+    <button class="bnav-item" id="bnav-fill" onclick="showPage('fill')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+      <span class="bnav-badge" id="bnavBadge"></span>
+      Llenado
+    </button>
+    <button class="bnav-item admin-only hidden" id="bnav-users" onclick="showPage('users')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      Usuarios
+    </button>
+    <button class="bnav-item admin-only hidden" id="bnav-columns" onclick="showPage('columns')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h4v18H3zm7 0h4v18h-4zm7 0h4v18h-4z"/></svg>
+      Columnas
+    </button>
+    <button class="bnav-item admin-only hidden" id="bnav-history" onclick="showPage('history')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+      Historial
+    </button>
+    <button class="bnav-item admin-only hidden" id="bnav-webhook" onclick="showPage('webhook')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 13.41c.41.39.41 1.03 0 1.42-.39.39-1.03.39-1.42 0a5.003 5.003 0 010-7.07l3.54-3.54a5.003 5.003 0 017.07 0 5.003 5.003 0 010 7.07l-1.49 1.49c.01-.36-.04-.72-.11-1.05l.78-.79c.98-.98.98-2.56 0-3.54a2.5 2.5 0 00-3.54 0l-3.54 3.54c-.98.98-.98 2.56 0 3.54z"/></svg>
+      Más
+    </button>
+  </nav>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle"></span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<!-- FIREBASE + APP SCRIPT -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA-fQG_U-zSwvOFC6vN7GvJRv2ZeX5fZc4",
+  authDomain: "stoprestaurant-15e24.firebaseapp.com",
+  projectId: "stoprestaurant-15e24",
+  storageBucket: "stoprestaurant-15e24.firebasestorage.app",
+  messagingSenderId: "141234420843",
+  appId: "1:141234420843:web:7ad162a4b3c7f012a5852e",
+  measurementId: "G-DNQ1EL0BE4"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ── COMPAT ALIASES (same API surface) ──
+// ── COMPAT ALIASES ──
+function collection(db, path){ return db.collection(path); }
+function doc(db, path, id){ return id ? db.collection(path).doc(id) : db.doc(path); }
+function getDocs(ref){ return ref.get(); }
+function getDoc(ref){ return ref.get(); }
+function addDoc(ref, data){ return ref.add(data); }
+function setDoc(ref, data){ return ref.set(data); }
+function updateDoc(ref, data){ return ref.update(data); }
+function deleteDoc(ref){ return ref.delete(); }
+function query(ref, ...constraints){ let q=ref; constraints.forEach(c=>{ q=c(q); }); return q; }
+function orderBy(field, dir='asc'){ return q=>q.orderBy(field,dir); }
+function limit(n){ return q=>q.limit(n); }
+function serverTimestamp(){ return firebase.firestore.FieldValue.serverTimestamp(); }
+function onSnapshot(ref, cb){
+  return ref.onSnapshot(snap=>{
+    // Normalize to have .docs array like modular SDK
+    if(snap.docs) cb(snap);
+    else cb({docs:[snap.exists?snap:null].filter(Boolean), empty:!snap.exists});
+  });
+}
+
+// ── STATE ──
+let currentUser = null;
+let currentUserData = null;
+let currentRestaurantId = null; // ← MULTI-TENANT
+let categories = [];
+let products = [];
+
+// ── HELPER: referencia a subcolección del restaurante ──
+function rdb(){ return db.collection('restaurants').doc(currentRestaurantId); }
+function rCol(col){ return rdb().collection(col); }
+function rDoc(col, id){ return rdb().collection(col).doc(id); }
+let fillChanges = {};
+let unsubInventory = null;
+
+// ── HELPERS ──
+function today(){ return new Date().toISOString().split('T')[0]; }
+function daysUntil(d){
+  if(!d) return 999;
+  return (new Date(d) - new Date(today())) / 86400000;
+}
+function tsToStr(ts){
+  if(!ts) return '—';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleString('es-CO', {dateStyle:'short', timeStyle:'short'});
+}
+function showAlert(id, msg, type='error'){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function hideAlert(id){ document.getElementById(id)?.classList.add('hidden'); }
+
+// ── LOADER ──
+function setLoader(txt){ document.getElementById('loaderText').textContent = txt; }
+function hideLoader(){ document.getElementById('appLoader').classList.add('hidden'); }
+
+// ── AUTH STATE ──
+auth.onAuthStateChanged(async (user) => {
+  if(user){
+    try {
+      setLoader('Cargando perfil de usuario…');
+      currentUser = user;
+      const snap = await getDoc(doc(db,'users',user.uid));
+      if(snap.exists){
+        currentUserData = {id: user.uid, ...snap.data()};
+      } else {
+        currentUserData = {id: user.uid, email: user.email, name: user.email, role:'admin'};
+        await setDoc(doc(db,'users',user.uid), currentUserData);
+      }
+      // ── Cargar restaurantId ──
+      currentRestaurantId = currentUserData.restaurantId || user.uid;
+      // Si no tiene restaurantId asignado, crear uno automáticamente
+      if(!currentUserData.restaurantId){
+        try {
+          await db.collection('users').doc(user.uid).update({ restaurantId: currentRestaurantId });
+          const restSnap = await rdb().get();
+          if(!restSnap.exists){
+            await rdb().set({
+              name: (currentUserData.name||user.email) + ' — Restaurante',
+              ownerEmail: currentUserData.email||user.email,
+              ownerUid: user.uid,
+              plan: 'manual',
+              suscripcionActiva: true,
+              fechaCreacion: serverTimestamp(),
+            });
+          }
+        } catch(e){ console.warn('restaurantId setup:', e.message); }
+      }
+      setupShell();
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('appShell').classList.remove('hidden');
+      hideLoader();
+      loadInventoryRealtime();
+      renderStats();
+      rdb().get().then(snap=>{ extraColumns = snap.data()?.extraColumns||[]; });
+    } catch(e){
+      console.error('Auth error:', e);
+      setLoader('Error al cargar. Recarga la página.');
+    }
+  } else {
+    currentUser = null;
+    currentUserData = null;
+    currentRestaurantId = null;
+    if(unsubInventory){ unsubInventory(); unsubInventory=null; }
+    document.getElementById('appShell').classList.add('hidden');
+    document.getElementById('loginScreen').classList.remove('hidden');
+    hideLoader();
+  }
+});
+
+// ── SETUP SHELL ──
+function roleLabel(role){
+  if(role==='admin') return 'Administrador';
+  return 'Personal';
+}
+function isAdmin(){ return currentUserData?.role==='admin'; }
+function canEdit(){ return isAdmin(); }
+
+function setupShell(){
+  document.getElementById('sidebarName').textContent = currentUserData.name || currentUserData.email;
+  document.getElementById('sidebarRole').textContent = roleLabel(currentUserData.role);
+  document.getElementById('sidebarAvatar').textContent = (currentUserData.name||'U')[0].toUpperCase();
+  document.querySelectorAll('.admin-only').forEach(el=>{
+    isAdmin() ? el.classList.remove('hidden') : el.classList.add('hidden');
+  });
+  document.querySelectorAll('.chef-visible').forEach(el=>{
+    isAdmin() ? el.classList.remove('hidden') : el.classList.add('hidden');
+  });
+}
+
+// ── TAB SWITCH ──
+window.switchTab = function(tab){
+  const isLogin = tab === 'login';
+  document.getElementById('loginForm').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('tabLoginBtn').style.cssText = isLogin
+    ? 'flex:1;padding:8px;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08);transition:.15s'
+    : 'flex:1;padding:8px;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:.15s';
+  document.getElementById('tabRegisterBtn').style.cssText = isLogin
+    ? 'flex:1;padding:8px;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:.15s'
+    : 'flex:1;padding:8px;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08);transition:.15s';
+  hideAlert('loginAlert');
+};
+
+// ── REGISTER ──
+window.doRegister = async function(){
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const restaurant = document.getElementById('regRestaurant').value.trim();
+  if(!name||!email||!pass||!restaurant){
+    showAlert('loginAlert','Completa todos los campos');
+    return;
+  }
+  if(pass.length < 6){
+    showAlert('loginAlert','La contraseña debe tener al menos 6 caracteres');
+    return;
+  }
+  const btn = document.getElementById('regBtn');
+  btn.disabled = true;
+  document.getElementById('regBtnText').textContent = 'Creando cuenta…';
+  hideAlert('loginAlert');
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    const uid = cred.user.uid;
+    const restaurantId = 'rest_' + uid.slice(0,12);
+    // Crear perfil usuario
+    await db.collection('users').doc(uid).set({
+      email, name, role: 'admin',
+      restaurantId,
+      plan: 'trial',
+      suscripcionActiva: true,
+      fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    // Crear restaurante
+    await db.collection('restaurants').doc(restaurantId).set({
+      name: restaurant,
+      ownerEmail: email,
+      ownerUid: uid,
+      plan: 'trial',
+      suscripcionActiva: true,
+      fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch(e){
+    let msg = e.message;
+    if(e.code==='auth/email-already-in-use') msg='Ese correo ya está registrado. ¿Quieres ingresar?';
+    if(e.code==='auth/weak-password') msg='La contraseña debe tener al menos 6 caracteres.';
+    showAlert('loginAlert', msg);
+    btn.disabled = false;
+    document.getElementById('regBtnText').textContent = 'Crear cuenta gratis';
+  }
+};
+
+// ── LOGIN ──
+window.doLogin = async function(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  if(!email||!pass){ showAlert('loginAlert','Completa todos los campos'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  document.getElementById('loginBtnText').textContent = 'Ingresando…';
+  hideAlert('loginAlert');
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e){
+    let msg = 'Correo o contraseña incorrectos.';
+    if(e.code==='auth/too-many-requests') msg='Demasiados intentos. Intenta más tarde.';
+    showAlert('loginAlert', msg);
+    btn.disabled = false;
+    document.getElementById('loginBtnText').textContent = 'Ingresar';
+  }
+};
+window.doLogout = async function(){ await auth.signOut(); };
+document.addEventListener('keydown', e=>{ if(e.key==='Enter' && !currentUser) window.doLogin(); });
+
+// ── NAV ──
+window.showPage = function(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const navEl = document.getElementById('nav-'+p);
+  if(navEl) navEl.classList.add('active');
+  const bnavEl = document.getElementById('bnav-'+p);
+  if(bnavEl) bnavEl.classList.add('active');
+  if(p==='fill'){ populateFillCats(); renderFill(); }
+  if(p==='users') loadUsers();
+  if(p==='history') loadHistory();
+  if(p==='columns') loadColumns();
+};
+
+// ── INVENTORY REALTIME ──
+function loadInventoryRealtime(){
+  setLoader('Sincronizando inventario…');
+  const catQ = query(rCol('categories'), orderBy('name'));
+  onSnapshot(catQ, snap=>{
+    categories = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const prodQ = query(rCol('products'), orderBy('name'));
+    onSnapshot(prodQ, psnap=>{
+      products = psnap.docs.map(d=>({id:d.id,...d.data()}));
+      renderInventory();
+      renderStats();
+      autoOpenPanels();
+      updateAlertBadge();
+      populateFillCats();
+    });
+  });
+}
+
+// ── STATS ──
+function renderStats(){
+  const total = products.length;
+  const belowMin = products.filter(p=>parseFloat(p.qty)<parseFloat(p.minStock));
+  const expiring = products.filter(p=>{
+    const d = daysUntil(p.expiry);
+    return p.expiry && d<=3;
+  });
+  const cats = categories.length;
+
+  // Stats cards
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Categorías</div><div class="stat-val">${cats}</div></div>
+    <div class="stat-card"><div class="stat-label">Productos</div><div class="stat-val ok">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Bajo stock</div><div class="stat-val ${belowMin.length>0?'warn':'ok'}">${belowMin.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Por vencer</div><div class="stat-val ${expiring.length>0?'danger':'ok'}">${expiring.length}</div></div>
+  `;
+
+  // Alert panels
+  let panelsHtml = '';
+
+  // Panel vencimiento
+  if(expiring.length > 0){
+    const rows = expiring.map(p=>{
+      const d = daysUntil(p.expiry);
+      let chip = '';
+      if(d<=0) chip=`<span class="alert-chip chip-red">VENCIDO</span>`;
+      else if(d<=1) chip=`<span class="alert-chip chip-red">Hoy / mañana</span>`;
+      else if(d<=3) chip=`<span class="alert-chip chip-orange">${Math.ceil(d)} días</span>`;
+      const cat = categories.find(c=>c.id===p.catId);
+      return `<tr>
+        <td><strong>${p.name}</strong></td>
+        <td style="color:var(--text2)">${cat?.name||'—'}</td>
+        <td>${p.expiry||'—'}</td>
+        <td>${chip}</td>
+        <td style="color:var(--text2)">${p.responsible||'—'}</td>
+      </tr>`;
+    }).join('');
+
+    panelsHtml += `
+    <div class="alert-panel alert-panel-danger" id="panel-expiry">
+      <div class="alert-panel-header" onclick="togglePanel('panel-expiry')">
+        <div class="alert-panel-icon">
+          <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+        </div>
+        <span class="alert-panel-title">Productos próximos a vencer o vencidos</span>
+        <span class="alert-panel-count">${expiring.length} producto${expiring.length>1?'s':''}</span>
+        <span class="alert-panel-chevron" id="chevron-panel-expiry">▼</span>
+      </div>
+      <div class="alert-panel-body" id="body-panel-expiry">
+        <table class="alert-panel-table">
+          <thead><tr><th>Producto</th><th>Categoría</th><th>Vence</th><th>Estado</th><th>Responsable</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  // Panel bajo stock
+  if(belowMin.length > 0){
+    const rows = belowMin.map(p=>{
+      const cat = categories.find(c=>c.id===p.catId);
+      const pct = p.minStock>0 ? Math.round((parseFloat(p.qty)/parseFloat(p.minStock))*100) : 0;
+      const barColor = pct<=30?'var(--danger)':pct<=60?'var(--warn)':'var(--accent)';
+      return `<tr>
+        <td><strong>${p.name}</strong></td>
+        <td style="color:var(--text2)">${cat?.name||'—'}</td>
+        <td style="font-family:var(--mono)">${p.qty} ${p.unit}</td>
+        <td style="font-family:var(--mono)">mín. ${p.minStock} ${p.unit}</td>
+        <td style="min-width:100px">
+          <div style="background:var(--warn2);border-radius:4px;height:6px;overflow:hidden">
+            <div style="width:${Math.min(pct,100)}%;height:100%;background:${barColor};border-radius:4px;transition:.3s"></div>
+          </div>
+          <span style="font-size:10px;color:var(--text3)">${pct}% del mínimo</span>
+        </td>
+      </tr>`;
+    }).join('');
+
+    panelsHtml += `
+    <div class="alert-panel alert-panel-warn" id="panel-stock">
+      <div class="alert-panel-header" onclick="togglePanel('panel-stock')">
+        <div class="alert-panel-icon">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4v2l8 5 8-5V4zm0 4.236l-8 5-8-5V20h16V8.236z"/></svg>
+        </div>
+        <span class="alert-panel-title">Productos por debajo del stock mínimo</span>
+        <span class="alert-panel-count">${belowMin.length} producto${belowMin.length>1?'s':''}</span>
+        <span class="alert-panel-chevron" id="chevron-panel-stock">▼</span>
+      </div>
+      <div class="alert-panel-body" id="body-panel-stock">
+        <table class="alert-panel-table">
+          <thead><tr><th>Producto</th><th>Categoría</th><th>Stock actual</th><th>Stock mínimo</th><th>Nivel</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('alertPanels').innerHTML = panelsHtml;
+}
+function updateAlertBadge(){
+  const n = products.filter(p=>parseFloat(p.qty)<parseFloat(p.minStock)||(p.expiry&&daysUntil(p.expiry)<=3)).length;
+  const badge = document.getElementById('alertBadge');
+  const bnavBadge = document.getElementById('bnavBadge');
+  if(n>0){
+    if(badge){ badge.textContent=n; badge.classList.remove('hidden'); }
+    if(bnavBadge){ bnavBadge.textContent=n; bnavBadge.classList.add('show'); }
+  } else {
+    if(badge) badge.classList.add('hidden');
+    if(bnavBadge) bnavBadge.classList.remove('show');
+  }
+}
+window.togglePanel = function(id){
+  const body = document.getElementById('body-'+id);
+  const chevron = document.getElementById('chevron-'+id);
+  if(!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if(chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+};
+// Auto-open panels on load
+function autoOpenPanels(){
+  ['panel-expiry','panel-stock'].forEach(id=>{
+    const body = document.getElementById('body-'+id);
+    const chevron = document.getElementById('chevron-'+id);
+    if(body){ body.classList.add('open'); if(chevron) chevron.style.transform='rotate(180deg)'; }
+  });
+}
+
+// ── RENDER INVENTORY ──
+function renderInventory(){
+  const el = document.getElementById('inventoryContent');
+  if(categories.length===0){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Sin categorías</div><div class="empty-sub">Crea tu primera categoría para comenzar</div></div>`;
+    return;
+  }
+  const isAdmin = canEdit();
+  let html='';
+  categories.forEach(cat=>{
+    const prods = products.filter(p=>p.catId===cat.id);
+    html+=`<div class="category-block">
+      <div class="cat-header">
+        <div class="cat-title"><div class="cat-bar"></div>${cat.name.toUpperCase()}<span class="cat-count">${prods.length} productos</span></div>
+        ${isAdmin?`<div class="cat-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openAddProduct('${cat.id}')">+ Producto</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCategory('${cat.id}','${cat.name}')">Eliminar</button>
+        </div>`:''}
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Producto</th><th>Unidad</th><th>Stock mín.</th>
+          <th style="color:var(--accent)">Stock actual</th>
+          <th style="color:var(--accent)">Última entrada</th>
+          <th style="color:var(--danger)">Última salida</th>
+          <th>F. Conteo</th><th>Vencimiento</th><th>Responsable</th>
+          ${extraColumns.map(c=>`<th style="color:var(--info)">${c.name}</th>`).join('')}
+          ${isAdmin?'<th></th>':''}
+        </tr></thead><tbody>`;
+    if(prods.length===0){
+      html+=`<tr><td colspan="${10+extraColumns.length}" style="text-align:center;color:var(--text3);padding:20px 12px">Sin productos. Agrega el primero.</td></tr>`;
+    } else {
+      prods.forEach(p=>{
+        const d = daysUntil(p.expiry);
+        const rowCls = d<=1?'row-danger':'';
+        const qtyCls = parseFloat(p.qty)<parseFloat(p.minStock)?'cell-warn':'';
+        const entrada = p.lastEntrada!=null ? `<span style="color:var(--accent);font-weight:600">+${p.lastEntrada}</span>` : '<span style="color:var(--text3)">—</span>';
+        const salida  = p.lastSalida!=null  ? `<span style="color:var(--danger);font-weight:600">-${p.lastSalida}</span>`  : '<span style="color:var(--text3)">—</span>';
+        const extraCells = extraColumns.map(c=>{
+          const val = p.extraData?.[c.id];
+          return `<td style="font-size:11px;color:var(--text2)">${val!==undefined&&val!==''?val:'—'}</td>`;
+        }).join('');
+        html+=`<tr class="${rowCls}">
+          <td class="prod-name">${p.name}</td>
+          <td>${p.unit}</td>
+          <td class="qty-val">${p.minStock}</td>
+          <td class="qty-val ${qtyCls}" style="font-weight:700">${p.qty??'—'}</td>
+          <td class="qty-val">${entrada}</td>
+          <td class="qty-val">${salida}</td>
+          <td style="color:var(--text2);font-size:11px">${p.countDate||'—'}</td>
+          <td style="font-size:11px">${p.expiry||'—'}</td>
+          <td style="color:var(--text2);font-size:11px">${p.responsible||'—'}</td>
+          ${extraCells}
+          ${isAdmin?`<td><button class="btn-icon del" onclick="deleteProduct('${p.id}','${p.name}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          </button></td>`:''}
+        </tr>`;
+      });
+    }
+    html+=`</tbody></table></div></div>`;
+  });
+  el.innerHTML = html;
+}
+
+// ── FILL PAGE ──
+function populateFillCats(){
+  const sel = document.getElementById('fillCatFilter');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Todas las categorías</option>';
+  categories.forEach(c=> sel.innerHTML += `<option value="${c.id}"${c.id===prev?' selected':''}>${c.name}</option>`);
+}
+window.renderFill = function(){
+  const catId = document.getElementById('fillCatFilter').value;
+  const search = document.getElementById('fillSearch').value.toLowerCase();
+  let prods = products.filter(p=>{
+    if(catId && p.catId!==catId) return false;
+    if(search && !p.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  if(prods.length===0){
+    document.getElementById('fillContent').innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">Sin resultados</div><div class="empty-sub">Ajusta los filtros o agrega productos primero</div></div>`;
+    return;
+  }
+  let catMap={};
+  prods.forEach(p=>{ if(!catMap[p.catId]) catMap[p.catId]=[]; catMap[p.catId].push(p); });
+  let html='';
+  for(const cid in catMap){
+    const cat = categories.find(c=>c.id===cid);
+    if(!cat) continue;
+    html+=`<div class="category-block">
+      <div class="cat-header"><div class="cat-title"><div class="cat-bar"></div>${cat.name.toUpperCase()}</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Producto</th><th>Unidad</th><th>Stock mín.</th>
+          <th style="background:#e9f4ee;color:var(--accent)">+ Entrada</th>
+          <th style="background:#fcedec;color:var(--danger)">- Salida</th>
+          <th>Motivo</th>
+          <th>Stock actual</th>
+          <th>Vencimiento</th><th>Responsable</th>
+          ${extraColumns.map(c=>`<th style="color:var(--info)">${c.name}</th>`).join('')}
+        </tr></thead><tbody>`;
+    catMap[cid].forEach(p=>{
+      const d = daysUntil(p.expiry);
+      const rowCls = d<=1?'row-danger':'';
+      const ch = fillChanges[p.id]||{};
+      const entrada = ch.entrada||0;
+      const salida = ch.salida||0;
+      const curQty = ch.qty!==undefined ? ch.qty : (parseFloat(p.qty)||0) + entrada - salida;
+      const curExp = ch.expiry!==undefined ? ch.expiry : (p.expiry||'');
+      const qtyCls = parseFloat(curQty)<parseFloat(p.minStock)?'cell-warn':'';
+
+      // Celdas editables para columnas extras
+      const extraInputs = extraColumns.map(c=>{
+        const curVal = ch.extraData?.[c.id] ?? p.extraData?.[c.id] ?? '';
+        if(c.type==='boolean'){
+          return `<td><select class="editable-cell" data-pid="${p.id}" data-field="extra_${c.id}" onchange="onFillChange(this)" style="min-width:80px">
+            <option value="" ${curVal===''?'selected':''}>—</option>
+            <option value="Sí" ${curVal==='Sí'?'selected':''}>Sí</option>
+            <option value="No" ${curVal==='No'?'selected':''}>No</option>
+          </select></td>`;
+        } else if(c.type==='select'){
+          const opts = (c.options||[]).map(o=>`<option value="${o}" ${curVal===o?'selected':''}>${o}</option>`).join('');
+          return `<td><select class="editable-cell" data-pid="${p.id}" data-field="extra_${c.id}" onchange="onFillChange(this)" style="min-width:100px">
+            <option value="">—</option>${opts}
+          </select></td>`;
+        } else {
+          const type = c.type==='number'?'number':c.type==='date'?'date':'text';
+          return `<td><input class="editable-cell" type="${type}" data-pid="${p.id}" data-field="extra_${c.id}"
+            value="${curVal}" onchange="onFillChange(this)" style="min-width:90px"></td>`;
+        }
+      }).join('');
+
+      html+=`<tr class="${rowCls}" id="frow-${p.id}">
+        <td class="prod-name">${p.name}</td>
+        <td>${p.unit}</td>
+        <td class="qty-val">${p.minStock}</td>
+        <td style="background:#f4fbf6">
+          <input class="editable-cell" type="number" min="0" step="0.01"
+            style="border-color:var(--accent2);min-width:70px"
+            data-pid="${p.id}" data-field="entrada" value="${entrada||''}"
+            placeholder="0" onchange="onFillChange(this)" onfocus="this.select()">
+        </td>
+        <td style="background:#fef6f6">
+          <input class="editable-cell" type="number" min="0" step="0.01"
+            style="border-color:var(--danger2);min-width:70px"
+            data-pid="${p.id}" data-field="salida" value="${salida||''}"
+            placeholder="0" onchange="onFillChange(this)" onfocus="this.select()">
+        </td>
+        <td>
+          <select class="editable-cell" data-pid="${p.id}" data-field="motivo"
+            onchange="onFillChange(this)" style="min-width:110px">
+            <option value="">— Motivo —</option>
+            <option value="compra" ${ch.motivo==='compra'?'selected':''}>Compra</option>
+            <option value="venta" ${ch.motivo==='venta'?'selected':''}>Venta</option>
+            <option value="merma" ${ch.motivo==='merma'?'selected':''}>Merma</option>
+            <option value="devolucion" ${ch.motivo==='devolucion'?'selected':''}>Devolución</option>
+            <option value="ajuste" ${ch.motivo==='ajuste'?'selected':''}>Ajuste manual</option>
+          </select>
+        </td>
+        <td class="qty-val ${qtyCls}" id="qty-display-${p.id}">
+          <input class="editable-cell" type="number" step="0.01"
+            style="min-width:70px;font-weight:600"
+            data-pid="${p.id}" data-field="qty" value="${curQty}"
+            onchange="onFillChange(this)" onfocus="this.select()">
+        </td>
+        <td><input class="editable-cell" type="date" data-pid="${p.id}" data-field="expiry" value="${curExp}" onchange="onFillChange(this)"></td>
+        <td style="white-space:nowrap;color:var(--text2);font-size:11px">${currentUserData?.name||'—'}</td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div></div>`;
+  }
+  document.getElementById('fillContent').innerHTML = html;
+};
+
+window.onFillChange = function(input){
+  const pid = input.dataset.pid;
+  const field = input.dataset.field;
+  if(!fillChanges[pid]) fillChanges[pid]={};
+
+  if(field==='entrada'||field==='salida'){
+    fillChanges[pid][field] = parseFloat(input.value)||0;
+    // Auto-calc new stock
+    const p = products.find(x=>x.id===pid);
+    if(p){
+      const ch = fillChanges[pid];
+      const entrada = ch.entrada||0;
+      const salida = ch.salida||0;
+      const newQty = parseFloat(parseFloat(p.qty||0) + entrada - salida).toFixed(2)*1;
+      fillChanges[pid].qty = newQty;
+      // Update qty input display
+      const qtyInput = document.querySelector(`input[data-pid="${pid}"][data-field="qty"]`);
+      if(qtyInput){
+        qtyInput.value = newQty;
+        const td = qtyInput.closest('td');
+        newQty < parseFloat(p.minStock) ? td.classList.add('cell-warn') : td.classList.remove('cell-warn');
+      }
+    }
+  } else if(field.startsWith('extra_')){
+    const colId = field.replace('extra_','');
+    if(!fillChanges[pid].extraData) fillChanges[pid].extraData = {};
+    fillChanges[pid].extraData[colId] = input.value;
+  } else if(field==='qty'){
+    fillChanges[pid].qty = parseFloat(input.value);
+    const p = products.find(x=>x.id===pid);
+    if(p){
+      const td = input.closest('td');
+      parseFloat(input.value)<parseFloat(p.minStock) ? td.classList.add('cell-warn') : td.classList.remove('cell-warn');
+    }
+  } else if(field==='expiry'){
+    fillChanges[pid].expiry = input.value;
+    const tr = input.closest('tr');
+    daysUntil(input.value)<=1 ? tr.classList.add('row-danger') : tr.classList.remove('row-danger');
+  } else {
+    fillChanges[pid][field] = input.value;
+  }
+};
+
+window.saveFill = async function(){
+  const btn = document.getElementById('saveFillBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:13px;height:13px;border-width:2px"></div> Guardando…';
+  let changed=0, belowMin=0, nearExp=0;
+  try {
+    const promises = [];
+    for(const pid in fillChanges){
+      const p = products.find(x=>x.id===pid);
+      if(!p) continue;
+      const ch = fillChanges[pid];
+      // Only save if there's actual data entered
+      const hasMovement = ch.entrada||ch.salida||ch.qty!==undefined||ch.expiry;
+      if(!hasMovement) continue;
+      const upd = { countDate: today(), responsible: currentUserData?.name||currentUser.email };
+      if(ch.qty!==undefined) upd.qty = ch.qty;
+      if(ch.expiry!==undefined) upd.expiry = ch.expiry;
+      if(ch.entrada) upd.lastEntrada = ch.entrada;
+      if(ch.salida)  upd.lastSalida  = ch.salida;
+      if(ch.motivo)  upd.lastMotivo  = ch.motivo;
+      if(ch.extraData && Object.keys(ch.extraData).length>0){
+        upd.extraData = {...(p.extraData||{}), ...ch.extraData};
+      }
+      promises.push(updateDoc(rDoc('products',pid), upd));
+      changed++;
+      // Log movement in history with entrada/salida/motivo
+      promises.push(addDoc(rCol('history'),{
+        action:'update',
+        productId: pid,
+        productName: p.name,
+        qtyAnterior: parseFloat(p.qty)||0,
+        qtyNueva: ch.qty!==undefined ? ch.qty : parseFloat(p.qty)||0,
+        entrada: ch.entrada||0,
+        salida: ch.salida||0,
+        motivo: ch.motivo||'',
+        expiry: ch.expiry||p.expiry||'',
+        user: currentUserData?.name||currentUser.email,
+        timestamp: serverTimestamp()
+      }));
+    }
+    await Promise.all(promises);
+    fillChanges = {};
+    products.forEach(p=>{
+      if(parseFloat(p.qty)<parseFloat(p.minStock)) belowMin++;
+      if(daysUntil(p.expiry)<=1) nearExp++;
+    });
+    const summary = document.getElementById('fillSummary');
+    summary.textContent = `✓ Se registraron ${changed} movimientos. ${belowMin} productos bajo stock mínimo. ${nearExp} próximos a vencer.`;
+    summary.classList.remove('hidden');
+    setTimeout(()=>summary.classList.add('hidden'), 6000);
+  } catch(e){
+    alert('Error guardando: '+e.message);
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg> Guardar cambios';
+};
+window.discardFill = function(){ fillChanges={}; renderFill(); };
+
+// ── USERS ──
+async function loadUsers(){
+  document.getElementById('usersContent').innerHTML = '<div class="loading-row"><div class="spinner"></div> Cargando…</div>';
+  // Solo usuarios del mismo restaurante
+  const snap = await db.collection('users')
+    .where('restaurantId','==', currentRestaurantId).get();
+  const users = snap.docs.map(d=>({id:d.id,...d.data()}));
+  if(users.length===0){
+    document.getElementById('usersContent').innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Sin usuarios</div></div>';
+    return;
+  }
+  let html='<div class="users-list">';
+  users.forEach(u=>{
+    const init = (u.name||u.email||'U')[0].toUpperCase();
+    const isSelf = u.id===currentUser.uid;
+    const badgeCls = u.role==='admin'?'badge-admin':'badge-staff';
+    const avatarCls = u.role==='admin'?'admin':'staff';
+    html+=`<div class="user-list-row">
+      <div class="ul-avatar ${avatarCls}">${init}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">${u.name||'—'}</div>
+        <div style="font-size:12px;color:var(--text2)">${u.email}</div>
+      </div>
+      <span class="badge ${badgeCls}">${roleLabel(u.role)}</span>
+      ${!isSelf?`<button class="btn-icon del" onclick="deleteUserRecord('${u.id}','${u.name||u.email}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      </button>`:'<span style="font-size:11px;color:var(--text3)">Tú</span>'}
+    </div>`;
+  });
+  html+='</div>';
+  document.getElementById('usersContent').innerHTML = html;
+}
+window.loadUsers = loadUsers;
+
+window.deleteUserRecord = async function(uid, name){
+  if(!confirm(`¿Eliminar el acceso de "${name}"? Se borrará el perfil de Firestore.`)) return;
+  await deleteDoc(doc(db,'users',uid));
+  await addDoc(rCol('history'),{
+    action:'delete', type:'user', targetName:name,
+    user:currentUserData?.name, timestamp:serverTimestamp()
+  });
+  loadUsers();
+};
+
+// ── HISTORY ──
+window.loadHistory = async function(){
+  document.getElementById('historyContent').innerHTML = '<div class="loading-row"><div class="spinner"></div> Cargando…</div>';
+  const q = query(rCol('history'), orderBy('timestamp','desc'), limit(100));
+  const snap = await getDocs(q);
+  if(snap.empty){
+    document.getElementById('historyContent').innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Sin historial aún</div><div class="empty-sub">Los cambios aparecerán aquí</div></div>';
+    return;
+  }
+  let html='<div class="history-list">';
+  snap.docs.forEach(d=>{
+    const h = d.data();
+    let actionText = '';
+    if(h.action==='update') actionText=`Actualizó <strong>${h.productName}</strong>`;
+    else if(h.action==='create') actionText=`Creó <strong>${h.productName||h.targetName}</strong>`;
+    else if(h.action==='delete') actionText=`Eliminó <strong>${h.productName||h.targetName}</strong>`;
+    let changesText = '';
+    if(h.action==='update' && h.productName){
+      const parts=[];
+      if(h.entrada) parts.push(`<span style="color:var(--accent)">+${h.entrada} entrada</span>`);
+      if(h.salida) parts.push(`<span style="color:var(--danger)">-${h.salida} salida</span>`);
+      if(h.motivo) parts.push(`<em>${h.motivo}</em>`);
+      if(h.qtyAnterior!==undefined && h.qtyNueva!==undefined && h.qtyAnterior!==h.qtyNueva)
+        parts.push(`stock: ${h.qtyAnterior} → <strong>${h.qtyNueva}</strong>`);
+      if(h.expiry) parts.push(`vence: ${h.expiry}`);
+      changesText = parts.join(' · ');
+    } else if(h.changes){
+      const parts=[];
+      if(h.changes.qty!==undefined) parts.push(`cantidad → ${h.changes.qty}`);
+      if(h.changes.expiry!==undefined) parts.push(`vencimiento → ${h.changes.expiry}`);
+      changesText = parts.join(', ');
+    }
+    html+=`<div class="history-row">
+      <div class="history-dot ${h.action}"></div>
+      <div class="history-info">
+        <div class="history-action">${actionText}</div>
+        <div class="history-meta">${h.user||'—'} ${changesText?'· '+changesText:''}</div>
+      </div>
+      <div class="history-time">${tsToStr(h.timestamp)}</div>
+    </div>`;
+  });
+  html+='</div>';
+  document.getElementById('historyContent').innerHTML = html;
+};
+
+// ── ADD CATEGORY ──
+window.openAddCategory = function(){
+  openModal('Nueva Categoría',
+    `<div class="form-group"><label class="form-label">Nombre de la categoría</label>
+     <input class="form-input" id="mCatName" placeholder="Ej: Proteínas, Lácteos…" autofocus></div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="saveCategory()">Crear categoría</button>`
+  );
+};
+window.saveCategory = async function(){
+  const name = document.getElementById('mCatName').value.trim();
+  if(!name) return;
+  const ref = await addDoc(rCol('categories'),{name, createdAt:serverTimestamp()});
+  await addDoc(rCol('history'),{
+    action:'create', type:'category', targetName:name,
+    user:currentUserData?.name, timestamp:serverTimestamp()
+  });
+  closeModal();
+};
+
+// ── ADD PRODUCT ──
+window.openAddProduct = function(catId){
+  openModal('Nuevo Producto',
+    `<div class="form-group"><label class="form-label">Nombre del producto</label>
+     <input class="form-input" id="mPName" placeholder="Ej: Pollo, Mozzarella…" autofocus></div>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+       <div class="form-group"><label class="form-label">Unidad de medida</label>
+         <select class="form-input" id="mPUnit">
+           <option>kg</option><option>g</option><option>L</option><option>mL</option>
+           <option>und</option><option>porción</option><option>caja</option>
+         </select></div>
+       <div class="form-group"><label class="form-label">Stock mínimo</label>
+         <input class="form-input" type="number" id="mPMin" value="1" min="0" step="0.1"></div>
+     </div>
+     <div class="form-group"><label class="form-label">Fecha de vencimiento (opcional)</label>
+       <input class="form-input" type="date" id="mPExpiry"></div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="saveProduct('${catId}')">Agregar producto</button>`
+  );
+};
+window.saveProduct = async function(catId){
+  const name = document.getElementById('mPName').value.trim();
+  if(!name) return;
+  const prod = {
+    catId, name,
+    unit: document.getElementById('mPUnit').value,
+    minStock: parseFloat(document.getElementById('mPMin').value)||1,
+    qty: 0, countDate: today(),
+    expiry: document.getElementById('mPExpiry').value||'',
+    responsible: currentUserData?.name||currentUser.email,
+    createdAt: serverTimestamp()
+  };
+  await addDoc(rCol('products'), prod);
+  await addDoc(rCol('history'),{
+    action:'create', productName:name,
+    user:currentUserData?.name, timestamp:serverTimestamp()
+  });
+  closeModal();
+};
+
+// ── DELETE ──
+window.deleteCategory = async function(catId, name){
+  if(!confirm(`¿Eliminar la categoría "${name}" y todos sus productos?`)) return;
+  const prods = products.filter(p=>p.catId===catId);
+  await Promise.all([
+    deleteDoc(rDoc('categories',catId)),
+    ...prods.map(p=>deleteDoc(rDoc('products',p.id))),
+    addDoc(rCol('history'),{
+      action:'delete', type:'category', targetName:name,
+      user:currentUserData?.name, timestamp:serverTimestamp()
+    })
+  ]);
+};
+window.deleteProduct = async function(pid, name){
+  if(!confirm(`¿Eliminar el producto "${name}"?`)) return;
+  await deleteDoc(rDoc('products',pid));
+  await addDoc(rCol('history'),{
+    action:'delete', productName:name,
+    user:currentUserData?.name, timestamp:serverTimestamp()
+  });
+};
+
+// ── ADD USER ──
+window.openAddUser = function(){
+  openModal('Nuevo Usuario',
+    `<div class="form-group"><label class="form-label">Nombre completo</label>
+     <input class="form-input" id="mUName" placeholder="Nombre del usuario" autofocus></div>
+     <div class="form-group"><label class="form-label">Correo electrónico</label>
+     <input class="form-input" type="email" id="mUEmail" placeholder="correo@ejemplo.com"></div>
+     <div class="form-group"><label class="form-label">Contraseña</label>
+     <input class="form-input" type="password" id="mUPass" placeholder="Mínimo 6 caracteres"></div>
+     <div class="form-group"><label class="form-label">Rol</label>
+     <select class="form-input" id="mURole">
+       <option value="staff">Personal (Staff)</option>
+       <option value="admin">Administrador</option>
+     </select></div>
+     <div id="addUserAlert" class="hidden"></div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" id="addUserBtn" onclick="saveUser()">Crear usuario</button>`
+  );
+};
+window.saveUser = async function(){
+  const name = document.getElementById('mUName').value.trim();
+  const email = document.getElementById('mUEmail').value.trim();
+  const pass = document.getElementById('mUPass').value;
+  const role = document.getElementById('mURole').value;
+  if(!name||!email||!pass){ showAlert('addUserAlert','Completa todos los campos'); return; }
+  const btn = document.getElementById('addUserBtn');
+  btn.disabled=true; btn.textContent='Creando…';
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await setDoc(doc(db,'users',cred.user.uid),{
+      email, name, role,
+      restaurantId: currentRestaurantId,
+      createdAt: serverTimestamp()
+    });
+    await addDoc(rCol('history'),{
+      action:'create', type:'user', targetName:name,
+      user:currentUserData?.name, timestamp:serverTimestamp()
+    });
+    closeModal();
+    await auth.currentUser.reload();
+    loadUsers();
+  } catch(e){
+    let msg = e.message;
+    if(e.code==='auth/email-already-in-use') msg='Ese correo ya está registrado.';
+    if(e.code==='auth/weak-password') msg='La contraseña debe tener al menos 6 caracteres.';
+    showAlert('addUserAlert', msg);
+    btn.disabled=false; btn.textContent='Crear usuario';
+  }
+};
+
+// ── WEBHOOK REGISTER ──
+window.registerUserWebhook = async function(){
+  const name=document.getElementById('wName').value.trim();
+  const email=document.getElementById('wEmail').value.trim();
+  const pass=document.getElementById('wPass').value;
+  const role=document.getElementById('wRole').value;
+  if(!name||!email||!pass){ showAlert('webhookAlert','Completa todos los campos','error'); document.getElementById('webhookAlert').classList.remove('hidden'); return; }
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await setDoc(doc(db,'users',cred.user.uid),{
+      email, name, role,
+      restaurantId: currentRestaurantId,
+      createdAt: serverTimestamp()
+    });
+    await addDoc(rCol('history'),{
+      action:'create',type:'user',targetName:name,
+      user:currentUserData?.name, timestamp:serverTimestamp()
+    });
+    document.getElementById('wName').value='';
+    document.getElementById('wEmail').value='';
+    document.getElementById('wPass').value='';
+    showAlert('webhookAlert',`Usuario "${name}" creado exitosamente.`,'success');
+    document.getElementById('webhookAlert').classList.remove('hidden');
+  } catch(e){
+    let msg=e.message;
+    if(e.code==='auth/email-already-in-use') msg='Ese correo ya está registrado.';
+    showAlert('webhookAlert',msg,'error');
+    document.getElementById('webhookAlert').classList.remove('hidden');
+  }
+};
+window.copyWebhookUrl = function(){
+  navigator.clipboard.writeText(document.getElementById('webhookUrlInput').value);
+  alert('URL copiada al portapapeles');
+};
+
+
+// ══════════════════════════════════════════════
+// COLUMNAS EXTRAS CONFIGURABLES
+// ══════════════════════════════════════════════
+let extraColumns = []; // [{id, name, type, options}]
+
+// Cargar columnas del restaurante
+async function loadColumns(){
+  const snap = await rdb().get();
+  extraColumns = snap.data()?.extraColumns || [];
+  renderColumns();
+}
+window.loadColumns = loadColumns;
+
+function renderColumns(){
+  const el = document.getElementById('columnsContent');
+  if(!el) return;
+  if(extraColumns.length===0){
+    el.innerHTML=`<div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">Sin columnas extras</div>
+      <div class="empty-sub">Agrega columnas personalizadas que aparecerán en todas las categorías</div>
+    </div>`;
+    return;
+  }
+  let html='<div class="users-list">';
+  extraColumns.forEach((col,i)=>{
+    const tipos = {text:'Texto libre',number:'Número',date:'Fecha',boolean:'Sí/No',select:'Lista de opciones'};
+    html+=`<div class="user-list-row">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">
+        ${col.type==='text'?'📝':col.type==='number'?'🔢':col.type==='date'?'📅':col.type==='boolean'?'✅':'📋'}
+      </div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">${col.name}</div>
+        <div style="font-size:11px;color:var(--text2)">${tipos[col.type]||col.type}${col.options?` · Opciones: ${col.options.join(', ')}`:''}  </div>
+      </div>
+      <button class="btn-icon del" onclick="deleteColumn(${i})">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      </button>
+    </div>`;
+  });
+  html+='</div>';
+  html+=`<div class="alert alert-info" style="margin-top:16px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+    Estas columnas aparecen en el inventario y en el llenado de todas las categorías.
+  </div>`;
+  el.innerHTML=html;
+}
+
+window.openAddColumn = function(){
+  openModal('Nueva Columna Extra',
+    `<div class="form-group">
+      <label class="form-label">Nombre de la columna</label>
+      <input class="form-input" id="colName" placeholder="Ej: Proveedor, Temperatura, Lote…" autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo de dato</label>
+      <select class="form-input" id="colType" onchange="toggleColOptions()">
+        <option value="text">Texto libre</option>
+        <option value="number">Número</option>
+        <option value="date">Fecha</option>
+        <option value="boolean">Sí / No</option>
+        <option value="select">Lista de opciones</option>
+      </select>
+    </div>
+    <div class="form-group hidden" id="colOptionsGroup">
+      <label class="form-label">Opciones (separadas por coma)</label>
+      <input class="form-input" id="colOptions" placeholder="Ej: Fresco, Congelado, Seco">
+    </div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="saveColumn()">Agregar columna</button>`
+  );
+};
+
+window.toggleColOptions = function(){
+  const type = document.getElementById('colType').value;
+  const group = document.getElementById('colOptionsGroup');
+  group.classList.toggle('hidden', type!=='select');
+};
+
+window.saveColumn = async function(){
+  const name = document.getElementById('colName').value.trim();
+  const type = document.getElementById('colType').value;
+  if(!name) return;
+  const col = { id: 'col_'+Date.now(), name, type };
+  if(type==='select'){
+    const opts = document.getElementById('colOptions').value;
+    col.options = opts.split(',').map(o=>o.trim()).filter(Boolean);
+  }
+  extraColumns.push(col);
+  await rdb().update({ extraColumns });
+  await addDoc(rCol('history'),{
+    action:'create', type:'column', targetName:name,
+    user:currentUserData?.name, timestamp:serverTimestamp()
+  });
+  renderColumns();
+  renderInventory();
+  closeModal();
+};
+
+window.deleteColumn = async function(idx){
+  if(!confirm(`¿Eliminar la columna "${extraColumns[idx].name}"?`)) return;
+  extraColumns.splice(idx,1);
+  await rdb().update({ extraColumns });
+  renderColumns();
+  renderInventory();
+};
+
+// ══════════════════════════════════════════════
+// EXPORTADOR EXCEL + PDF
+// ══════════════════════════════════════════════
+
+window.openExportModal = function(){
+  openModal('Exportar Reportes',
+    `<div style="display:flex;flex-direction:column;gap:10px">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:4px">Selecciona el reporte y formato:</p>
+
+      <div style="background:var(--surface2);border-radius:8px;padding:14px 16px;cursor:pointer;border:1px solid var(--border)" onclick="exportExcel('inventario')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;background:#1d6f42;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600">Inventario completo — Excel</div>
+            <div style="font-size:11px;color:var(--text2)">Todas las categorías y productos con stock actual</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--surface2);border-radius:8px;padding:14px 16px;cursor:pointer;border:1px solid var(--border)" onclick="exportExcel('historial')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;background:#1d6f42;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600">Historial de movimientos — Excel</div>
+            <div style="font-size:11px;color:var(--text2)">Entradas, salidas y cambios registrados</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--surface2);border-radius:8px;padding:14px 16px;cursor:pointer;border:1px solid var(--border)" onclick="exportPDF()">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;background:#b83232;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600">Reporte ejecutivo — PDF</div>
+            <div style="font-size:11px;color:var(--text2)">Resumen con alertas, estadísticas e inventario</div>
+          </div>
+        </div>
+      </div>
+    </div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`
+  );
+};
+
+// ── EXPORTAR EXCEL ──
+window.exportExcel = async function(tipo){
+  closeModal();
+  // Cargar SheetJS dinámicamente
+  if(!window.XLSX){
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+  }
+  const wb = XLSX.utils.book_new();
+  const fecha = new Date().toLocaleDateString('es-CO');
+
+  if(tipo === 'inventario'){
+    // Una hoja por categoría
+    categories.forEach(cat=>{
+      const prods = products.filter(p=>p.catId===cat.id);
+      const data = [
+        ['Producto','Unidad','Stock Mínimo','Stock Actual','Última Entrada','Última Salida','F. Conteo','Vencimiento','Responsable','Estado']
+      ];
+      prods.forEach(p=>{
+        const bajo = parseFloat(p.qty)<parseFloat(p.minStock);
+        const vence = p.expiry && daysUntil(p.expiry)<=3;
+        let estado = '✓ OK';
+        if(bajo && vence) estado = '⚠ Bajo stock + Por vencer';
+        else if(bajo) estado = '⚠ Bajo stock';
+        else if(vence) estado = '⚠ Por vencer';
+        data.push([
+          p.name, p.unit, p.minStock, p.qty,
+          p.lastEntrada||0, p.lastSalida||0,
+          p.countDate||'', p.expiry||'',
+          p.responsible||'', estado
+        ]);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      // Estilos de ancho de columna
+      ws['!cols'] = [
+        {wch:22},{wch:8},{wch:12},{wch:12},
+        {wch:14},{wch:14},{wch:12},{wch:14},{wch:18},{wch:22}
+      ];
+      const nombre = cat.name.substring(0,30).replace(/[\/\\?*\[\]]/g,'');
+      XLSX.utils.book_append_sheet(wb, ws, nombre);
+    });
+
+    // Hoja resumen
+    const resumen = [
+      ['REPORTE DE INVENTARIO — StopRestaurant'],
+      ['Fecha de exportación:', fecha],
+      [''],
+      ['Categoría','Total Productos','Bajo Stock','Por Vencer']
+    ];
+    categories.forEach(cat=>{
+      const prods = products.filter(p=>p.catId===cat.id);
+      const bajo = prods.filter(p=>parseFloat(p.qty)<parseFloat(p.minStock)).length;
+      const vence = prods.filter(p=>p.expiry&&daysUntil(p.expiry)<=3).length;
+      resumen.push([cat.name, prods.length, bajo, vence]);
+    });
+    resumen.push(['']);
+    resumen.push(['TOTAL', products.length,
+      products.filter(p=>parseFloat(p.qty)<parseFloat(p.minStock)).length,
+      products.filter(p=>p.expiry&&daysUntil(p.expiry)<=3).length
+    ]);
+    const wsRes = XLSX.utils.aoa_to_sheet(resumen);
+    wsRes['!cols'] = [{wch:24},{wch:16},{wch:14},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, wsRes, 'Resumen');
+
+    XLSX.writeFile(wb, `Inventario_StopRestaurant_${fecha.replace(/\//g,'-')}.xlsx`);
+
+  } else if(tipo === 'historial'){
+    // Cargar historial de Firestore
+    const q = query(rCol('history'), orderBy('timestamp','desc'), limit(500));
+    const snap = await getDocs(q);
+    const data = [
+      ['Fecha','Acción','Producto/Usuario','Entrada','Salida','Stock Nuevo','Motivo','Responsable']
+    ];
+    snap.docs.forEach(d=>{
+      const h = d.data();
+      const ts = h.timestamp?.toDate ? h.timestamp.toDate().toLocaleString('es-CO') : '';
+      data.push([
+        ts,
+        h.action==='update'?'Actualización':h.action==='create'?'Creación':'Eliminación',
+        h.productName||h.targetName||'',
+        h.entrada||'',
+        h.salida||'',
+        h.qtyNueva!==undefined?h.qtyNueva:'',
+        h.motivo||'',
+        h.user||''
+      ]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{wch:18},{wch:14},{wch:22},{wch:10},{wch:10},{wch:12},{wch:14},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Historial');
+    XLSX.writeFile(wb, `Historial_StopRestaurant_${fecha.replace(/\//g,'-')}.xlsx`);
+  }
+};
+
+// ── EXPORTAR PDF ──
+window.exportPDF = async function(){
+  closeModal();
+  if(!window.jspdf){
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  }
+  if(!window.jspdf?.jsPDF) return alert('Error cargando jsPDF');
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const fecha = new Date().toLocaleDateString('es-CO');
+  const W = 210; // ancho A4
+  let y = 0;
+
+  // ── HEADER ──
+  doc.setFillColor(26, 25, 23);
+  doc.rect(0, 0, W, 28, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica','bold');
+  doc.text('StopRestaurant', 14, 13);
+  doc.setFontSize(9);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(163, 218, 184);
+  doc.text('Control de Inventario', 14, 20);
+  doc.setTextColor(200,200,200);
+  doc.text(`Reporte ejecutivo — ${fecha}`, W-14, 13, {align:'right'});
+  y = 36;
+
+  // ── ESTADÍSTICAS ──
+  const total = products.length;
+  const belowMin = products.filter(p=>parseFloat(p.qty)<parseFloat(p.minStock)).length;
+  const nearExp = products.filter(p=>p.expiry&&daysUntil(p.expiry)<=3).length;
+  const cats = categories.length;
+
+  const stats = [
+    {label:'Categorías', val:cats, color:[31,110,60]},
+    {label:'Productos', val:total, color:[26,79,138]},
+    {label:'Bajo stock', val:belowMin, color:[160,112,16]},
+    {label:'Por vencer', val:nearExp, color:[184,50,50]},
+  ];
+  const cardW = 42; const cardH = 22; const gap = 4;
+  const startX = 14;
+  stats.forEach((s,i)=>{
+    const x = startX + i*(cardW+gap);
+    doc.setFillColor(245,244,240);
+    doc.roundedRect(x, y, cardW, cardH, 3, 3, 'F');
+    doc.setTextColor(...s.color);
+    doc.setFontSize(18);
+    doc.setFont('helvetica','bold');
+    doc.text(String(s.val), x+cardW/2, y+13, {align:'center'});
+    doc.setFontSize(7);
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(100,100,100);
+    doc.text(s.label.toUpperCase(), x+cardW/2, y+19, {align:'center'});
+  });
+  y += cardH + 10;
+
+  // ── ALERTAS ──
+  const belowProds = products.filter(p=>parseFloat(p.qty)<parseFloat(p.minStock));
+  const expProds = products.filter(p=>p.expiry&&daysUntil(p.expiry)<=3);
+
+  if(belowProds.length>0){
+    doc.setFillColor(253,246,227);
+    doc.roundedRect(14, y, W-28, 8, 2, 2, 'F');
+    doc.setTextColor(160,112,16);
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.text(`⚠ ${belowProds.length} producto(s) bajo stock mínimo: ${belowProds.map(p=>p.name).join(', ')}`, 18, y+5.5);
+    y += 12;
+  }
+  if(expProds.length>0){
+    doc.setFillColor(252,237,236);
+    doc.roundedRect(14, y, W-28, 8, 2, 2, 'F');
+    doc.setTextColor(184,50,50);
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.text(`⚠ ${expProds.length} producto(s) próximos a vencer: ${expProds.map(p=>p.name).join(', ')}`, 18, y+5.5);
+    y += 12;
+  }
+  y += 4;
+
+  // ── INVENTARIO POR CATEGORÍA ──
+  categories.forEach(cat=>{
+    const prods = products.filter(p=>p.catId===cat.id);
+    if(prods.length===0) return;
+
+    // Verificar espacio, nueva página si hace falta
+    if(y > 250){ doc.addPage(); y = 14; }
+
+    // Título categoría
+    doc.setFillColor(31,110,60);
+    doc.rect(14, y, 3, 6, 'F');
+    doc.setTextColor(24,23,15);
+    doc.setFontSize(10);
+    doc.setFont('helvetica','bold');
+    doc.text(cat.name.toUpperCase(), 20, y+5);
+    y += 10;
+
+    // Encabezado tabla
+    const cols = [
+      {label:'Producto', x:14, w:52},
+      {label:'Unidad', x:66, w:18},
+      {label:'Mín.', x:84, w:18},
+      {label:'Actual', x:102, w:18},
+      {label:'Vencimiento', x:120, w:30},
+      {label:'Responsable', x:150, w:46},
+    ];
+    doc.setFillColor(238,237,233);
+    doc.rect(14, y, W-28, 7, 'F');
+    doc.setTextColor(106,105,96);
+    doc.setFontSize(7);
+    doc.setFont('helvetica','bold');
+    cols.forEach(c=> doc.text(c.label, c.x+1, y+5));
+    y += 7;
+
+    // Filas
+    prods.forEach((p,i)=>{
+      if(y > 270){ doc.addPage(); y = 14; }
+      const bajo = parseFloat(p.qty)<parseFloat(p.minStock);
+      const vence = p.expiry&&daysUntil(p.expiry)<=3;
+      if(vence) doc.setFillColor(252,237,236);
+      else if(bajo) doc.setFillColor(253,246,227);
+      else if(i%2===0) doc.setFillColor(250,250,247);
+      else doc.setFillColor(255,255,255);
+      doc.rect(14, y, W-28, 6.5, 'F');
+
+      doc.setFont('helvetica', bajo||vence?'bold':'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(bajo?160:vence?184:24, bajo?112:vence?50:23, bajo?16:vence?50:15);
+      doc.text(p.name.substring(0,28), 15, y+4.5);
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(100,100,100);
+      doc.text(p.unit, 67, y+4.5);
+      doc.setTextColor(bajo?160:24, bajo?112:23, bajo?16:15);
+      doc.text(String(p.minStock), 85, y+4.5);
+      doc.setFont('helvetica', bajo?'bold':'normal');
+      doc.text(String(p.qty||0), 103, y+4.5);
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(vence?184:100, vence?50:100, vence?50:100);
+      doc.text(p.expiry||'—', 121, y+4.5);
+      doc.setTextColor(100,100,100);
+      doc.text((p.responsible||'—').substring(0,22), 151, y+4.5);
+
+      // Línea separadora
+      doc.setDrawColor(221,219,213);
+      doc.setLineWidth(0.2);
+      doc.line(14, y+6.5, W-14, y+6.5);
+      y += 6.5;
+    });
+    y += 6;
+  });
+
+  // ── FOOTER ──
+  const pages = doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(155,154,147);
+    doc.setFont('helvetica','normal');
+    doc.text(`StopRestaurant · Control de Inventario · ${fecha}`, 14, 292);
+    doc.text(`Página ${i} de ${pages}`, W-14, 292, {align:'right'});
+  }
+
+  doc.save(`Reporte_StopRestaurant_${fecha.replace(/\//g,'-')}.pdf`);
+};
+
+// ── HELPER: cargar script dinámico ──
+function loadScript(src){
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+// ── MODAL ──
+window.openModal = function(title,body,footer){
+  document.getElementById('modalTitle').textContent=title;
+  document.getElementById('modalBody').innerHTML=body;
+  document.getElementById('modalFooter').innerHTML=footer;
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  setTimeout(()=>document.querySelector('.modal-box input, .modal-box select')?.focus(),100);
+};
+window.closeModal = function(){ document.getElementById('modalOverlay').classList.add('hidden'); };
+document.getElementById('modalOverlay').addEventListener('click', e=>{
+  if(e.target===document.getElementById('modalOverlay')) closeModal();
+});
+</script>
+</body>
+</html>
